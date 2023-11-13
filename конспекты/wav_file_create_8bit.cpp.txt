@@ -1,0 +1,102 @@
+#if 0
+
+
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+
+int main()
+{
+	typedef unsigned long uint32;
+	typedef unsigned short uint16;
+	typedef unsigned char uint8;
+
+	union _2byte
+	{
+		uint8 b[2];
+		uint16 u;
+		short i;
+	};
+	union _4byte
+	{
+		uint8 b[4];
+		long i;
+		float f;
+		uint32 u;
+		_2byte s[2];
+	};
+
+	FILE* track;
+	uint32 _N = 44100, count, i = 0, obertones = 1;
+	float Hz_max = 4200, Hz_min = 135, pi = acos(-1), Hz = 628, amplitude = 0x10, t_s = 5;
+	count = _N * t_s;
+	unsigned char* point = (unsigned char*)malloc(sizeof(char)*count), buf;
+	if (!point) return -1;
+	for (i = 0; i < count; i++)
+	{
+		point[i] = amplitude + amplitude * sin(i* pi * 2 * Hz / _N);
+	}/*
+	if (obertones == 0) obertones = 1;
+	for (i = 0; i < count * obertones; i++)
+	{
+		point[i/obertones].i += amplitude / (1 + i % obertones) * sin((i / obertones) * pi * 2 * Hz / _N * (1 + i % obertones));
+	}//*/
+
+	struct wavHeaferFields
+	{
+		_4byte chunkID;//="RIFF", 0x52494646
+		_4byte chunkSize;//bytes, size of file - 8 (8 = chunkID+chunksize)
+		_4byte format;//="WAVE", 0x57415645
+		_4byte subchunk1ID;//="fmt ", 0x666d7420 
+		_4byte subchunk1Size;//=16
+		_4byte audioFormat_numChannels;//={0x0001, 0x0001 mono or 0x0002 stereo}
+		_4byte sampleRate;//=44100 points per second
+		_4byte byterate;//byte per second, = samplerate*bits per sample/8
+		_4byte blockAlign_bitsPerSample;//bytes for sample, including all channels =bits per sanple*num cannels/8; bits per sample, = 32 (sizeof(float))
+		_4byte subchunk2ID;//="data", 0x64617461
+		_4byte subchunk2Size;// size of data
+	};
+	union wavHeaderFile
+	{
+		wavHeaferFields inf;
+		uint8 bytes[sizeof(wavHeaferFields)];
+	};
+
+	wavHeaderFile header;
+	header.inf.chunkID.i = 0x46464952;
+	header.inf.chunkSize.i = -1;
+	header.inf.format.i = 0x45564157;
+	header.inf.subchunk1ID.i = 0x20746d66;
+	header.inf.subchunk1Size.i = 16;
+	header.inf.audioFormat_numChannels.s[0].u = 1;
+	header.inf.audioFormat_numChannels.s[1].u = 1;
+	header.inf.sampleRate.i = _N;
+	header.inf.blockAlign_bitsPerSample.s[1].u = 8;
+	header.inf.blockAlign_bitsPerSample.s[0].u = \
+		header.inf.blockAlign_bitsPerSample.s[1].u * \
+		header.inf.audioFormat_numChannels.s[1].u / 8;
+	header.inf.byterate.i = \
+		header.inf.sampleRate.i *\
+		header.inf.blockAlign_bitsPerSample.s[1].u / 8;
+	header.inf.subchunk2ID.i = 0x61746164;
+	header.inf.subchunk2Size.i = count * \
+		header.inf.blockAlign_bitsPerSample.s[1].u / 8;
+
+	fopen_s(&track, "track.wav", "wt");
+	if (!track) return -2;
+
+	for (i = 0; i < sizeof(wavHeaderFile); i++)
+	{
+		fputc(header.bytes[i], track);
+	}
+	bool no_error = 1;
+	for (i = 0; i < header.inf.subchunk2Size.i; i++)
+	{
+		fputc(point[i], track);
+	}
+
+	fclose(track);
+	if (point) free(point);
+	return 0;
+}
+#endif // 0

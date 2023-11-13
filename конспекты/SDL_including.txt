@@ -1,0 +1,31 @@
+Project
+{
+ Build options
+ {
+  Search directories
+  {
+   Compiler
+   {
+    \sdl_32(64)\inclide
+   }
+   Linker
+   {
+    \sdl_32(64)\lib
+   }
+  }
+  Linker settings
+  {
+   Other linker options
+   {
+    -lmingw32 -lSDL2main -lSDL2
+   }
+  }
+  [OK]
+ }
+}
+
+#include <SDL2/SDL.h>
+
+int main(int argc, char* argv[])
+
+copy SDL2.dll
